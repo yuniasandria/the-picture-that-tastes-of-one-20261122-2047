@@ -17,21 +17,33 @@ OUTPUT_PATH = "/output/entry.png"
 MAX_BYTES = 1_048_576
 
 
+def validate_jpeg(data: bytes) -> bool:
+    """Return True only if data is a JPEG within the size cap."""
+    if len(data) > MAX_BYTES:
+        print(f"image too large: {len(data)} bytes", file=sys.stderr)
+        return False
+    if not data.startswith(b"\xff\xd8\xff"):
+        print("image is not a JPEG", file=sys.stderr)
+        return False
+    return True
+
+
+def write_entry(data: bytes) -> None:
+    """Write data to OUTPUT_PATH with the required mode."""
+    os.makedirs("/output", exist_ok=True)
+    with open(OUTPUT_PATH, "wb") as f:
+        f.write(data)
+    os.chmod(OUTPUT_PATH, 0o644)
+
+
 def main() -> int:
     here = os.path.dirname(os.path.abspath(__file__))
     src = os.path.join(here, IMAGE_NAME)
     with open(src, "rb") as f:
         data = f.read()
-    if len(data) > MAX_BYTES:
-        print(f"image too large: {len(data)} bytes", file=sys.stderr)
+    if not validate_jpeg(data):
         return 1
-    if not data.startswith(b"\xff\xd8\xff"):
-        print("image is not a JPEG", file=sys.stderr)
-        return 1
-    os.makedirs("/output", exist_ok=True)
-    with open(OUTPUT_PATH, "wb") as f:
-        f.write(data)
-    os.chmod(OUTPUT_PATH, 0o644)
+    write_entry(data)
     print(f"wrote {OUTPUT_PATH}: {len(data)} bytes, 1024x1024 JPEG")
     return 0
 
